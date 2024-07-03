@@ -20,6 +20,23 @@ func Test_run(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Jira der",
+			args: args{
+				opts: &options{
+					hostPort: "jira.belastingdienst.nl:443",
+					derOut: true,
+				},
+			},
+		},
+		{
+			name: "Jira pretty options",
+			args: args{
+				opts: &options{
+					showOpts: true,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
