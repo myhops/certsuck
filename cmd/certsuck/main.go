@@ -27,11 +27,6 @@ func showChains(w io.Writer, chains [][]*x509.Certificate) {
 	}
 }
 
-type showPemsOptions struct {
-	noRoot   bool
-	noServer bool
-}
-
 func getHostPart(hostPort string) string {
 	parts := strings.Split(hostPort, ":")
 	return parts[0]
@@ -61,24 +56,17 @@ func writeDerFiles(chain []*x509.Certificate, opts *options) error {
 	return nil
 }
 
-func showPems(w io.Writer, chain []*x509.Certificate, opts ...showPemsOptions) error {
-	var noRoot bool
-	var noServer bool
-
-	if len(opts) > 0 {
-		noRoot = opts[0].noRoot
-		noServer = opts[0].noServer
-	}
+func showPems(w io.Writer, chain []*x509.Certificate, opts *options) error {
 	var pb = pem.Block{
 		Type: "CERTIFICATE",
 	}
 	for i, crt := range chain {
 		isServer := i == 0
-		if isServer && noServer {
+		if isServer && opts.noServer {
 			continue
 		}
 		isRoot := isRoot(crt)
-		if noRoot && isRoot {
+		if opts.noRoot && isRoot {
 			continue
 		}
 		if isServer {
@@ -147,7 +135,8 @@ func run(opts *options) error {
 	}
 
 	if opts.showOut {
-		if err := showPems(ow, longest); err != nil {
+		fmt.Fprintln(ow)
+		if err := showPems(ow, longest, opts); err != nil {
 			return fmt.Errorf("error showing PEMs: %w", err)
 		}
 	}
