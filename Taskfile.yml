@@ -15,3 +15,8 @@ tasks:
     desc: Build certsuck cli
     cmds:
     - cmd: go build -o releases/certsuck ./cmd/suck
+
+  install:
+    desc: Build and install certsuck
+    cmds:
+    - cmd: go install ./cmd/certsuck

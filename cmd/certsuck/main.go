@@ -5,92 +5,24 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
 
 var (
-	ErrToFewArguments = errors.New("to few arguments")
+	ErrMissingHost = errors.New("missing host")
 )
-
-type options struct {
-	hostPort  string
-	showOut   bool
-	noRoot    bool
-	noServer  bool
-	derOut    bool
-	derPrefix string
-	showOpts  bool
-}
-
-const (
-	fmtOptions = "Hostport: %v, showOut: %v, noRoot: %v, noServer: %v, derOut: %v, derPrefix: %s"
-	fmtPrettyOptions = `  Hostport: %v 
-  showOut: %v
-  noRoot: %v
-  noServer: %v
-  derOut: %v
-  derPrefix: %s`
-)
-
-func (opts *options) string(format string) string {
-	out := strings.Builder{}
-	fmt.Fprintf(&out, format,
-		opts.hostPort, opts.showOut, opts.noRoot, opts.noServer, opts.derOut, opts.derPrefix)
-	return out.String()	
-}
-
-func (opts *options) String() string {
-	return opts.string(fmtOptions)
-}
-
-func (opts *options) prettyString() string {
-	return opts.string(fmtPrettyOptions)
-}
-
-func getOptions(args []string) (*options, error) {
-	if len(args) < 1 {
-		return nil, ErrToFewArguments
-	}
-	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
-	opts := &options{}
-	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port")
-	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
-	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. The names of the files is <host>-0x.der [false]")
-	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
-	fs.BoolVar(&opts.noRoot, "no-root", false, "Do not show the root cert in pem output [false]")
-	fs.BoolVar(&opts.noServer, "no-server", false, "Do not show the server cert in pem output [false]")
-	fs.BoolVar(&opts.showOpts, "show-opts", false, "Show the options [false]")
-
-	if err := fs.Parse(args[1:]); err != nil {
-		return nil, err
-	}
-	return opts, nil
-}
-
-func usage(args []string) {
-	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
-	opts := &options{}
-	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port")
-	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
-	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. The names of the files is <host>-0x.der [false]")
-	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
-	fs.BoolVar(&opts.noRoot, "no-root", false, "Do not show the root cert in pem output [false]")
-	fs.BoolVar(&opts.noServer, "no-server", false, "Do not show the server cert in pem output [false]")
-	fs.BoolVar(&opts.showOpts, "show-opts", false, "Show the options [false]")
-	fs.Usage()
-}
 
 func showChains(w io.Writer, chains [][]*x509.Certificate) {
 	// Show the certs.
 	for i, chain := range chains {
 		fmt.Printf("Chain %d\n", i)
-		for _, crt := range chain {
-			fmt.Fprintf(w, "  Subject: %s\n  Issuer:    %s\n", crt.Subject, crt.Issuer)
+		for i, crt := range chain {
+			fmt.Fprintf(w, "  %1d Subject: %s\n    Issuer:  %s\n", i, crt.Subject, crt.Issuer)
 		}
 	}
 }
@@ -111,8 +43,16 @@ func writeDerFiles(chain []*x509.Certificate, opts *options) error {
 	if len(opts.derPrefix) > 0 {
 		prefix = opts.derPrefix
 	}
+	// Build the file name using the prefix and path.
+	prefix = filepath.Join(opts.derDir, prefix)
 
 	for i, crt := range chain {
+		if i == 0 && opts.noServer {
+			continue
+		}
+		if isRoot(crt) && opts.noRoot {
+			continue
+		}
 		name := fmt.Sprintf("%s%02d.der", prefix, i)
 		if err := os.WriteFile(name, crt.Raw, 0777); err != nil {
 			return fmt.Errorf("error writing %s", err)
@@ -170,6 +110,10 @@ func run(opts *options) error {
 
 	if opts.showOpts {
 		showOptions(ow, opts)
+	}
+
+	if len(opts.hostPort) == 0 {
+		return ErrMissingHost
 	}
 
 	callback := func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
