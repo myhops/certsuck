@@ -202,9 +202,15 @@ func run(opts *options) error {
 		}
 	}
 
+	if opts.showOut {
+		if err := showPems(ow, longest); err != nil {
+			return fmt.Errorf("error showing PEMs: %w", err)
+		}
+	}
+
 	if opts.derOut {
 		if err := writeDerFiles(longest, opts); err != nil {
-			return err
+			return fmt.Errorf("error writing DER files: %w", err)
 		}
 	}
 	return nil
