@@ -1,6 +1,16 @@
 # Cert Suck
 
-This package offers a simple cli that allows you to collect the certificates that the client used to validate the tls endpoint of the server. 
+This package offers a simple cli tool that allows you to collect the certificates that the client uses to validate the tls endpoint of a server. 
+It can be used to collect the ca chain and create a trust store for e.g. Java applications.
+
+By default it shows the subjects and issuers of the certificates that validated the server.
+It support options to show the certificate contents in PEM format, and to write out the DER representations of the certificates.
+It also has flags to leave out the certificate of the server and the root certificate, leaving only the intermediate certs if present.
+
+Use the -h option to get the usage information.
+
+If you have any comments or feature requests, please create an issue. 
+This program was created quickly and has a lot of room for improvement, I know.
 
 ## Usage
 
