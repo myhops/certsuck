@@ -20,3 +20,4 @@ tasks:
     desc: Build and install certsuck
     cmds:
     - cmd: go install ./cmd/certsuck
+
