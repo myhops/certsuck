@@ -20,6 +20,11 @@ type options struct {
 	derPrefix string
 	derDir    string
 	showOpts  bool
+
+	buildJks  bool
+	storePass string
+	keyPass   string
+	keystore  string
 }
 
 const (
@@ -57,11 +62,15 @@ func getOptions(args []string) (*options, error) {
 	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port")
 	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
 	fs.StringVar(&opts.derDir, "der-dir", ".", "Path to write the der files to. Defaults to the current directory")
+	fs.StringVar(&opts.keyPass, "key-pass", "changeme", "Password for the keys [changeme]")
+	fs.StringVar(&opts.storePass, "store-pass", "changeme", "Password for the store [changeme]")
+	fs.StringVar(&opts.keystore, "keystore", "truststore.jks", "Keystore name [truststore.jks]")
 	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. The names of the files is <host>-0x.der [false]")
 	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
 	fs.BoolVar(&opts.noRoot, "no-root", false, "Omit the root cert in pem or der output [false]")
 	fs.BoolVar(&opts.noServer, "no-server", false, "Omit the server cert in pem or der output [false]")
 	fs.BoolVar(&opts.showOpts, "show-opts", false, "Show the options [false]")
+	fs.BoolVar(&opts.buildJks, "build-jks", false, "Build the jks file [false]")
 
 	if err := fs.Parse(args[1:]); err != nil {
 		return nil, err
