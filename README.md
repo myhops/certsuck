@@ -22,7 +22,7 @@ Usage of /certsuck:
   -der-out
         Output der files. [false]
   -der-prefix string
-        Prefix for the der files. Defaults to <host name>-
+        Prefix for the der files. Defaults to <host name>
   -host string
         Hostname plus port
   -no-root
