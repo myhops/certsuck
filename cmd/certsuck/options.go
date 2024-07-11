@@ -73,7 +73,7 @@ func usage(args []string) {
 	fs := flag.NewFlagSet(args[0], flag.ExitOnError)
 	opts := &options{}
 	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port")
-	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>")
+	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
 	fs.StringVar(&opts.derDir, "der-dir", ".", "Path to write the der files to. Defaults to the current directory")
 	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. The names of the files is <host>-0x.der [false]")
 	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
