@@ -17,13 +17,17 @@ var (
 	ErrMissingHost = errors.New("missing host")
 )
 
-func showChains(w io.Writer, chains [][]*x509.Certificate) {
+func showChain(w io.Writer, chain []*x509.Certificate, indent string) {
+	for i, crt := range chain {
+		fmt.Fprintf(w, "%s%1d Subject: %s\n    Issuer:  %s\n", indent, i, crt.Subject, crt.Issuer)
+	}
+}
+
+func showChains(w io.Writer, chains map[string][]*x509.Certificate) {
 	// Show the certs.
-	for i, chain := range chains {
-		fmt.Printf("Chain %d\n", i)
-		for i, crt := range chain {
-			fmt.Fprintf(w, "  %1d Subject: %s\n    Issuer:  %s\n", i, crt.Subject, crt.Issuer)
-		}
+	for k, chain := range chains {
+		fmt.Printf("%s\n", k)
+		showChain(w, chain, "  ")
 	}
 }
 
@@ -92,8 +96,50 @@ func showOptions(w io.Writer, opts *options) {
 	fmt.Fprintf(w, "Options:\n%s\n", opts.prettyString())
 }
 
+func collectChains(opts *options) (map[string][]*x509.Certificate, error) {
+	var verifiedChains = [][]*x509.Certificate{}
+	var peerCerts = []*x509.Certificate{}
+
+	verifyConnectionCallback := func(state tls.ConnectionState) error {
+		verifiedChains = slices.Clone( state.VerifiedChains)
+		peerCerts = slices.Clone(state.PeerCertificates)
+		return nil
+	}
+
+	// Create a config for the callback.
+	tlsCfg := tls.Config{
+		InsecureSkipVerify: opts.insecure,
+		VerifyConnection: verifyConnectionCallback,
+	}
+	// Connect to the host
+	conn, err := tls.Dial("tcp", opts.hostPort, &tlsCfg)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	res := make(map[string][]*x509.Certificate)
+
+	for i, chain := range verifiedChains {
+		res[fmt.Sprintf("Verified chain %2d", i)] = chain
+	}
+	res["Peer chain"] = peerCerts
+	return res, nil
+}
+
+func getLongestFromMap(chains map[string][]*x509.Certificate) string {
+	var l int
+	var longestKey string
+	for k, chain := range chains {
+		if len(chain) > l {
+			longestKey = k
+			l = len(chain)
+		}
+	}
+	return longestKey
+}
+
 func run(opts *options) error {
-	var chains = [][]*x509.Certificate{}
 	ow := os.Stdout
 
 	if opts.showOpts {
@@ -104,22 +150,11 @@ func run(opts *options) error {
 		return ErrMissingHost
 	}
 
-	callback := func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		chains = slices.Clone(verifiedChains)
-		return nil
-	}
-
-	// Create a config for the callback.
-	tlsCfg := tls.Config{
-		VerifyPeerCertificate: callback,
-	}
-	// Connect to the host
-	conn, err := tls.Dial("tcp", opts.hostPort, &tlsCfg)
+	chains, err := collectChains(opts)
 	if err != nil {
-		showOptions(ow, opts)
 		return err
 	}
-	defer conn.Close()
+
 	showChains(ow, chains)
 
 	// No out required.
@@ -127,22 +162,17 @@ func run(opts *options) error {
 		return nil
 	}
 
-	var longest []*x509.Certificate
-	for _, c := range chains {
-		if len(c) > len(longest) {
-			longest = c
-		}
-	}
+	ln := getLongestFromMap(chains)
 
 	if opts.showOut {
 		fmt.Fprintln(ow)
-		if err := showPems(ow, longest, opts); err != nil {
+		if err := showPems(ow, chains[ln], opts); err != nil {
 			return fmt.Errorf("error showing PEMs: %w", err)
 		}
 	}
 
 	if opts.derOut {
-		if err := writeDerFiles(longest, opts); err != nil {
+		if err := writeDerFiles(chains[ln], opts); err != nil {
 			return fmt.Errorf("error writing DER files: %w", err)
 		}
 	}
@@ -157,7 +187,7 @@ func main() {
 	}
 	if err := run(opts); err != nil {
 		fmt.Printf("Run error: %s\n", err.Error())
-		usage(os.Args)
+		// usage(os.Args)
 		os.Exit(2)
 	}
 	os.Exit(0)

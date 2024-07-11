@@ -58,16 +58,25 @@ func Test_run_google(t *testing.T) {
 	}{
 		// TODO: Add test cases.
 		{
-			name: "Jira pretty options",
+			name: "insecure",
 			args: args{
 				opts: &options{
-					hostPort: "www.google.com:443",
-					showOut: true,
-					noRoot: true,
-					noServer: true,
+					hostPort: "mediaservernew.local:10443",
+					insecure: true,
 				},
 			},
 		},
+		// {
+		// 	name: "Jira pretty options",
+		// 	args: args{
+		// 		opts: &options{
+		// 			hostPort: "www.google.com:443",
+		// 			showOut: true,
+		// 			noRoot: true,
+		// 			noServer: true,
+		// 		},
+		// 	},
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
