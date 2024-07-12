@@ -137,6 +137,5 @@ total 12
 
 ## Installation
 
-If you have go installed, clone this dir and run go install ./cmd/certsuck.
+If you have go installed, run ```go install github.com/myhops/certsuck/cmd/certsuck@latest```.
 
-If you do nog have go installed, download the binary from *releases*.
