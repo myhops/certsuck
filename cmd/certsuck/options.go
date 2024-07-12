@@ -82,6 +82,6 @@ func newFlagSetAndOptions(name string) (*flag.FlagSet, *options)  {
 	fs.BoolVar(&opts.noRoot, "no-root", false, "Omit the root cert in pem or der output [false]")
 	fs.BoolVar(&opts.noServer, "no-server", false, "Omit the server cert in pem or der output [false]")
 	fs.BoolVar(&opts.showOpts, "show-opts", false, "Show the options [false]")
-	fs.BoolVar(&opts.insecure, "insecure", true, "Allow insecure certs [true]")
+	fs.BoolVar(&opts.insecure, "insecure", false, "Allow insecure server")
 	return fs, opts
 }
