@@ -69,15 +69,15 @@ func usage(args []string) {
 	fs.Usage()
 }
 
-func newFlagSetAndOptions(name string) (*flag.FlagSet, *options)  {
+func newFlagSetAndOptions(name string) (*flag.FlagSet, *options) {
 	fs := flag.NewFlagSet(name, flag.ExitOnError)
 	opts := &options{}
-	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port")
+	fs.StringVar(&opts.hostPort, "host", "", "Hostname plus port, e.g. www.example.com:443")
 	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
 	fs.StringVar(&opts.derDir, "der-dir", ".", "Path to write the der files to. Defaults to the current directory")
 	fs.StringVar(&opts.cacerts, "cacerts", "", "Extra cacerts to use to verify the server, pem format")
 
-	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. The names of the files is <host>-0x.der [false]")
+	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. [false]")
 	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
 	fs.BoolVar(&opts.noRoot, "no-root", false, "Omit the root cert in pem or der output [false]")
 	fs.BoolVar(&opts.noServer, "no-server", false, "Omit the server cert in pem or der output [false]")

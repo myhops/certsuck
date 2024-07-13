@@ -1,4 +1,4 @@
-package probe
+package certsuck
 
 import (
 	"bytes"
@@ -9,8 +9,10 @@ import (
 	"text/template"
 )
 
+// Probe collects certs.
 type Probe struct {
 	insecure bool
+	rootCAs *x509.CertPool
 }
 
 // Chains contains the result of a connection probe to a server.
@@ -42,7 +44,7 @@ func WithInsecure(insecure ...bool) Option {
 	}
 }
 
-// New returns a new Probe with the given options set.
+// New returns a new Probe with the given option set.
 func New(opts ...Option) *Probe {
 	probe := &Probe{}
 	for _, opt := range opts {
@@ -51,7 +53,13 @@ func New(opts ...Option) *Probe {
 	return probe
 }
 
-// CollectCerts resets the probe and collect the certs from the hostPort.
+func WithRootCAs(rootCAs *x509.CertPool) Option {
+	return func(p *Probe) {
+		p.rootCAs = rootCAs
+	}
+}
+
+// CollectCerts collect the certs from the server at hostPort and returns the found chains.
 func (p *Probe) CollectCerts(hostPort string, opts ...Option) (*Chains, error) {
 	return p.collectChains(hostPort)
 }
@@ -69,11 +77,12 @@ func (p *Probe) collectChains(hostPort string) (*Chains, error) {
 	tlsCfg := tls.Config{
 		InsecureSkipVerify: p.insecure,
 		VerifyConnection:   verifyConnectionCallback,
+		RootCAs: p.rootCAs,
 	}
 	// Connect to the host
 	conn, err := tls.Dial("tcp", hostPort, &tlsCfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dial error: %w", err)
 	}
 	defer conn.Close()
 
@@ -106,14 +115,16 @@ func (c *Chains) String() string {
 }
 
 func toStringTemplate(c *Chains) string {
-	s, err := c.FormatTemplate(defaultTemplate)
+	s, err := c.FormatTemplate(stringTemplate)
 	if err != nil {
 		return err.Error()
 	}
 	return s
 }
 
-const defaultTemplate = `
+// DefaultTemplate is the template that Chains.String uses.
+// It is also shown as an example for modification.
+const DefaultTemplate = `
 {{- range $i, $item := .Verified -}}
 {{- println "Verified" $i -}}
 	{{- range $j, $val  := $item -}}
@@ -131,6 +142,30 @@ const defaultTemplate = `
 {{- end -}}
 `
 
+// The template used by String.
+// You can override it with SetStringTemplate.
+var stringTemplate = DefaultTemplate
+
+// SetStringTemplate sets the template used by Chains.String.
+// When this function returns an error, Chain.Strings will not work.
+func SetStringTemplate(tpl string) error {
+	t := template.New("string")
+	if _, err := t.Parse(tpl); err != nil {
+		return fmt.Errorf("parsing StringTemplate failed: %w", err)
+	}
+	return nil
+}
+
+// MustSetStringTemplate sets the template used by Chains.String.
+// It panics if parsing the template fails.
+func MustSetStringTemplate(tpl string) {
+	if err := SetStringTemplate(tpl); err != nil {
+		panic(err.Error())
+	}
+}
+
+// FormatTemplate produces a string with the chain information.
+// String uses this method with the DefaultTemplate for tpl.
 func (c *Chains) FormatTemplate(tpl string) (string, error) {
 	t := template.New("string")
 	t, err := t.Parse(tpl)

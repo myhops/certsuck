@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/myhops/certsuck/probe"
+	"github.com/myhops/certsuck"
 )
 
 var (
@@ -83,6 +83,18 @@ func showOptions(w io.Writer, opts *options) {
 	fmt.Fprintf(w, "Options:\n%s\n", opts.prettyString())
 }
 
+func loadCertPool(name string) (*x509.CertPool, error) {
+	certs, err := certsuck.ReadCertsFile(name)
+	if err != nil {
+		return nil, err
+	}
+	cp := x509.NewCertPool()
+	for _, crt := range certs {
+		cp.AddCert(crt)
+	}
+	return cp, nil
+}
+
 func run(opts *options) error {
 	ow := os.Stdout
 
@@ -94,7 +106,20 @@ func run(opts *options) error {
 		return ErrMissingHost
 	}
 
-	chains, err := probe.New(probe.WithInsecure(opts.insecure)).CollectCerts(opts.hostPort)
+	// Load ca cerst if given.
+	var cp *x509.CertPool
+	if len(opts.cacerts) > 0 {
+		var err error
+		cp, err = loadCertPool(opts.cacerts)
+		if err != nil {
+			return err
+		}
+	}
+
+	chains, err := certsuck.New(
+		certsuck.WithInsecure(opts.insecure),
+		certsuck.WithRootCAs(cp),
+	).CollectCerts(opts.hostPort)
 	if err != nil {
 		return err
 	}
