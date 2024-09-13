@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -95,6 +96,20 @@ func loadCertPool(name string) (*x509.CertPool, error) {
 	return cp, nil
 }
 
+func setTemplate(template string) error {
+	if template[0] == '@' {
+		b, err := os.ReadFile(template[1:])
+		if err != nil {
+			return err
+		}
+		template = string(b)
+	}
+	if err := certsuck.SetStringTemplate(template); err != nil {
+		return err
+	}
+	return nil
+}
+
 func run(opts *options) error {
 	ow := os.Stdout
 
@@ -122,6 +137,13 @@ func run(opts *options) error {
 	).CollectCerts(opts.hostPort)
 	if err != nil {
 		return err
+	}
+
+	if opts.template != "" {
+		log.Printf("using template %s", opts.template)
+		if err := setTemplate(opts.template); err != nil {
+			return err
+		}
 	}
 
 	fmt.Fprint(ow, chains.String())

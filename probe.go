@@ -153,6 +153,7 @@ func SetStringTemplate(tpl string) error {
 	if _, err := t.Parse(tpl); err != nil {
 		return fmt.Errorf("parsing StringTemplate failed: %w", err)
 	}
+	stringTemplate = tpl
 	return nil
 }
 

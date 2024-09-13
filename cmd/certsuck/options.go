@@ -22,6 +22,7 @@ type options struct {
 	showOpts  bool
 	insecure  bool
 	cacerts   string
+	template  string
 }
 
 const (
@@ -76,6 +77,7 @@ func newFlagSetAndOptions(name string) (*flag.FlagSet, *options) {
 	fs.StringVar(&opts.derPrefix, "der-prefix", "", "Prefix for the der files. Defaults to <host name>-")
 	fs.StringVar(&opts.derDir, "der-dir", ".", "Path to write the der files to. Defaults to the current directory")
 	fs.StringVar(&opts.cacerts, "cacerts", "", "Extra cacerts to use to verify the server, pem format")
+	fs.StringVar(&opts.template, "template", "", "Output template for cert info list. Prefix with @ to indicate that flag is a filename")
 
 	fs.BoolVar(&opts.derOut, "der-out", false, "Output der files. [false]")
 	fs.BoolVar(&opts.showOut, "out", false, "Show pem output [false]")
